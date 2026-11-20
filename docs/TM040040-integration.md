@@ -35,3 +35,40 @@ Status: preparation only; no firmware behavior changed.
 
 ## Important
 This document is a safe starting point, not a validated wiring diagram or functioning trackpad firmware.
+
+
+## Repository pin audit (2026-11-20)
+
+Source files inspected in this repository:
+- `boards/shields/Sofle/Sofle.dtsi`
+- `boards/shields/Sofle/Sofle_R.overlay`
+- `boards/shields/Sofle/Sofle_L.overlay`
+- `boards/shields/Sofle/Kconfig.defconfig`
+
+Confirmed existing OLED bus:
+- `i2c0_default`: SDA `P0.17`, SCL `P0.20`.
+- `&pro_micro_i2c` is enabled and contains `ssd1306@3c` (128x32).
+- OLED is selected via `zephyr,display = &oled` in shared shield DTSI.
+- Cirque module example uses `glidepoint@2a` (address `0x2a`), so address collision with `0x3c` is not expected, subject to actual device confirmation.
+
+**Pin conflict warning**: shared `Sofle.dtsi` assigns right encoder A/B to `&pro_micro 20` / `&pro_micro 21`. These are *Pro Micro header pin identifiers*, NOT nRF `P0.20` / `P0.21`; do not conflate the numbering systems. Right overlay currently enables `&right_encoder`. Right keyboard matrix uses `&pro_micro 10,16,14,15,18,19` for columns and `&pro_micro 5,6,7,8,9` for rows. Select DR only after mapping physical header pads to nRF GPIO and checking actual accessibility.
+
+Potential external module:
+- https://github.com/nxtkb/cirque-input-module
+- Its README documents `cirque,pinnacle2`, `reg = <0x2a>`, `data-ready-gpios`, `CONFIG_ZMK_POINTING`, and a split-oriented input path.
+- Example DR GPIO `P0.22` is NOT a verified free PandaKB pin.
+- Do not assume module's current main branch is compatible with the repository's ZMK v0.3. Verify at a pinned commit and run test builds.
+
+Split design:
+- Right = peripheral trackpad input source.
+- Left = central; both sides need coordinated firmware with input-split routing and input listener on central (see https://zmk.dev/docs/hardware-integration/pointing).
+- Keep right OLED, left OLED and left EC11 unchanged where possible; disable right EC11 only in the dedicated test variant.
+- Both left and right test firmware images must be flashed together for split pointer forwarding.
+
+Remaining blockers before code enablement:
+1. Identify a physical accessible DR GPIO on the right without matrix/OLED collision.
+2. Check OLED and trackpad bus pullups, connector pinout, 3.3 V supply, and R1 I2C conversion on delivered unit.
+3. Confirm driver + ZMK v0.3 compatibility, including ZMK input-split availability and OLED build.
+4. Create isolated test build targets and verify GitHub Actions success.
+
+No trackpad functionality is enabled by this documentation update.
