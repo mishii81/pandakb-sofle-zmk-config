@@ -20,8 +20,23 @@
         ;
 };
 
+/* Right encoder is not installed; its P0.29 pad is used for Cirque DR. */
 &right_encoder {
-    status = "okay";
+    status = "disabled";
+};
+
+&pro_micro_i2c {
+    glidepoint: glidepoint@2a {
+        compatible = "cirque,pinnacle";
+        reg = <0x2a>;
+        status = "okay";
+        dr-gpios = <&gpio0 29 GPIO_ACTIVE_HIGH>;
+        sensitivity = "2x";
+    };
+};
+
+&glidepoint_split {
+    device = <&glidepoint>;
 };
 / {
     chosen {
