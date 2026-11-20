@@ -87,3 +87,21 @@ Measured pad connections (right PCB, user-confirmed):
 IMPORTANT: Existing `Sofle.dtsi` uses `&pro_micro 10` as a right-hand matrix column, so D10/P0.09 is **not** a safe DR candidate unless verified otherwise. The pin identifiers `&pro_micro 20/21` in the encoder definition are not the physical D20/D21 labels; check the board's `pro_micro` mapping before changing.
 
 Next: inspect actual nRF board/pro_micro mappings and check whether D16/P0.29 or D17/P0.31 is occupied by the matrix or another device. Do not enable DR in firmware until verified.
+
+
+## Verified ZMK connector mapping and DR selection (2026-11-20)
+
+Checked the official ZMK nice!nano `arduino_pro_micro_pins.dtsi` mapping:
+- `&pro_micro 20` -> `&gpio0 29` (P0.29), right encoder A.
+- `&pro_micro 21` -> `&gpio0 31` (P0.31), right encoder B.
+- `&pro_micro 10` -> `&gpio0 9` (P0.09), right matrix column.
+
+These match the user's continuity measurements by nRF GPIO. Note that the **D16/D17 labels in the photo** are not the same as the ZMK `&pro_micro 16/17` identifiers. Use the nRF P0.xx values as the reliable reference.
+
+**Proposed DR: P0.29, `<&gpio0 29 GPIO_ACTIVE_HIGH>`**, from the measured pad below GND; alternate P0.31. Disable `&right_encoder` in a right-only test overlay before claiming the pad. P0.09 must remain in the matrix.
+
+References:
+- https://github.com/zmkfirmware/zmk/blob/main/app/module/boards/nicekeyboards/nice_nano/arduino_pro_micro_pins.dtsi
+- https://github.com/nxtkb/cirque-input-module
+
+Compatibility remains untested: the current cirque module README uses newer `nice_nano//zmk` build syntax and ZMK pointing features, while this repository pins ZMK v0.3 and builds `nice_nano_v2`. Do not add its main branch to the working firmware without an isolated test and compatibility assessment.
