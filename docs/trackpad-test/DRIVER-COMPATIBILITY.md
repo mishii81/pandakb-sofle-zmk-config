@@ -53,3 +53,20 @@ https://github.com/kalbasit/zmk-config/blob/main/config/west.yml
 Attempted to inspect the exact fork's README and binding files directly through GitHub, but the connector returned 404 for the specified repository/ref. Consequently, its binding name and Kconfig symbols are NOT confirmed. Do not silently substitute the newer `cirque,pinnacle2` syntax.
 
 Next gate: retrieve exact driver sources, validate DTS binding and version, then enable an isolated build. No build or firmware change has been made.
+
+
+## Binding source inspection completed
+
+Fetched these **exact source files** from `petejohanson/cirque-input-module` via GitHub connector:
+- `dts/bindings/input/cirque,pinnacle-i2c.yaml`: `compatible: "cirque,pinnacle"`, includes `i2c-device.yaml` and `cirque,pinnacle-common.yaml`.
+- `dts/bindings/input/cirque,pinnacle-common.yaml`: defines `dr-gpios`, `sleep`, `no-taps`, `sensitivity` with enum `1x/2x/3x/4x`.
+- `zephyr/module.yml`: `dts_root: .`, CMake and Kconfig integration.
+
+Updated the staged right overlay to `cirque,pinnacle`, `dr-gpios = <&gpio0 29 GPIO_ACTIVE_HIGH>`, `sensitivity = "2x"`. This matches the inspected *repository HEAD* binding, not yet a verified pinned v0.3-compatible commit.
+
+Important remaining checks:
+- Choose an immutable revision of the module known to build with ZMK v0.3.
+- Inspect `drivers/Kconfig` and ZMK v0.3 pointing config to choose correct Kconfig symbols.
+- Confirm right OLED plus trackpad simultaneous operation and power use.
+- Correct the separately staged `docs/TM040040-right-overlay.template.dts` legacy template before using it; it still shows newer driver syntax and is not a build input.
+- Build left/right firmware; no GitHub Actions run was triggered by docs-only commits.
