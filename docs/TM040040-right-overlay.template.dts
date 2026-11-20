@@ -3,7 +3,7 @@
  * Not included by build.yaml and deliberately NOT a buildable overlay.
  *
  * Verify ZMK v0.3 compatibility with cirque-input-module before use.
- * Verify the real free DR GPIO before replacing PLACEHOLDER.
+ * Proposed DR is P0.29 from continuity-tested encoder pad; still verify final wiring.
  * Do not put this in boards/shields/Sofle/Sofle_R.overlay yet.
  *
  * Existing shared Sofle.dtsi defines &pro_micro_i2c, SSD1306 @ 0x3c,
@@ -16,7 +16,7 @@
         compatible = "cirque,pinnacle2";
         reg = <0x2a>;
         status = "okay";
-        data-ready-gpios = <&gpio0 PLACEHOLDER GPIO_ACTIVE_HIGH>;
+        data-ready-gpios = <&gpio0 29 GPIO_ACTIVE_HIGH>;
         data-mode = "relative";
         primary-tap-enable;
         sleep-mode-enable;
