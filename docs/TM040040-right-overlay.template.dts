@@ -2,7 +2,8 @@
  * TM040040 right-half integration REFERENCE ONLY.
  * Not included by build.yaml and deliberately NOT a buildable overlay.
  *
- * Verify ZMK v0.3 compatibility with cirque-input-module before use.
+ * Uses petejohanson/cirque-input-module binding names (not a tested build).
+ * Verify ZMK v0.3 compatibility and pin an immutable driver commit before use.
  * Proposed DR is P0.29 from continuity-tested encoder pad; still verify final wiring.
  * Do not put this in boards/shields/Sofle/Sofle_R.overlay yet.
  *
@@ -13,10 +14,11 @@
 /*
 &pro_micro_i2c {
     glidepoint: glidepoint@2a {
-        compatible = "cirque,pinnacle2";
+        compatible = "cirque,pinnacle";
         reg = <0x2a>;
         status = "okay";
-        data-ready-gpios = <&gpio0 29 GPIO_ACTIVE_HIGH>;
+        dr-gpios = <&gpio0 29 GPIO_ACTIVE_HIGH>;
+        sensitivity = "2x";
         data-mode = "relative";
         primary-tap-enable;
         sleep-mode-enable;
