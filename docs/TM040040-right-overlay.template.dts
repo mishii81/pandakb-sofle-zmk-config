@@ -1,0 +1,44 @@
+/*
+ * TM040040 right-half integration REFERENCE ONLY.
+ * Not included by build.yaml and deliberately NOT a buildable overlay.
+ *
+ * Verify ZMK v0.3 compatibility with cirque-input-module before use.
+ * Verify the real free DR GPIO before replacing PLACEHOLDER.
+ * Do not put this in boards/shields/Sofle/Sofle_R.overlay yet.
+ *
+ * Existing shared Sofle.dtsi defines &pro_micro_i2c, SSD1306 @ 0x3c,
+ * and TWIM SDA=P0.17, SCL=P0.20. Retain these definitions.
+ */
+
+/*
+&pro_micro_i2c {
+    glidepoint: glidepoint@2a {
+        compatible = "cirque,pinnacle2";
+        reg = <0x2a>;
+        status = "okay";
+        data-ready-gpios = <&gpio0 PLACEHOLDER GPIO_ACTIVE_HIGH>;
+        data-mode = "relative";
+        primary-tap-enable;
+        sleep-mode-enable;
+    };
+};
+
+&right_encoder {
+    status = "disabled";
+};
+
+&glidepoint_split {
+    device = <&glidepoint>;
+};
+*/
+
+/*
+ * Also required (not provided by this template):
+ * 1. Add cirque-input-module at a verified compatible pinned revision.
+ * 2. Define shared zmk,input-split and disabled input-listener in
+ *    a shared devicetree file included by BOTH halves.
+ * 3. Enable input-listener on central (left).
+ * 4. Enable ZMK pointing and I2C settings for appropriate halves.
+ * 5. Remove/rework right encoder keymap sensor bindings.
+ * 6. Verify BLE split input events and build both halves.
+ */
