@@ -8,6 +8,8 @@ manifest:
       url-base: https://github.com/mctechnology17
     - name: carrefinho
       url-base: https://github.com/carrefinho
+    - name: geeksville
+      url-base: https://github.com/geeksville
   projects:
     - name: zmk
       remote: zmkfirmware
@@ -18,5 +20,8 @@ manifest:
     - name: prospector-zmk-module
       remote: carrefinho
       revision: main
+    - name: cirque-input-module
+      remote: geeksville
+      revision: ba53fe81bad6690c5999b9e0c113988c1246b4d1
   self:
     path: config
