@@ -37,3 +37,19 @@ These are leads, NOT verified compatible modules for this particular shield and 
 - Right-column lower pad -> P0.09, already used in right matrix; never reassign.
 - Right encoder must be disabled on test right firmware.
 - Existing OLED I2C pins P0.17/P0.20 and address 0x3c are unchanged; Cirque candidate address 0x2a.
+
+
+## Verification update: official ZMK v0.3 documentation
+
+The ZMK **v0.3-specific** documentation confirms that peripheral pointing is supported with `zmk,input-split` and `zmk,input-listener`:
+- https://v0-3-branch.zmk.dev/docs/development/hardware-integration/pointing
+- https://v0-3-branch.zmk.dev/docs/config/split
+
+Thus, split pointing itself does NOT require upgrading ZMK beyond v0.3. The staged shared split and listener structure matches the official v0.3 documentation at the conceptual level. Driver-specific DTS and Kconfig remain unverified.
+
+A public configuration `kalbasit/zmk-config` explicitly pins ZMK to `3cf9006a9377f21c99e944e29e2a507d8c3e9069` (v0.3) and `cirque-input-module` to `c3e1fcfd8f9fba2e1f8f09ed664822870bce61ca`. This is evidence of a compatible *combination in another project*, not proof that this PandaKB repository will build with it:
+https://github.com/kalbasit/zmk-config/blob/main/config/west.yml
+
+Attempted to inspect the exact fork's README and binding files directly through GitHub, but the connector returned 404 for the specified repository/ref. Consequently, its binding name and Kconfig symbols are NOT confirmed. Do not silently substitute the newer `cirque,pinnacle2` syntax.
+
+Next gate: retrieve exact driver sources, validate DTS binding and version, then enable an isolated build. No build or firmware change has been made.
