@@ -1,0 +1,5 @@
+/* Proposed central-side fragment. NOT included in active build. */
+/* Include TM040040-split.dtsi from the real shield overlay when testing. */
+&glidepoint_listener {
+    status = "okay";
+};

@@ -29,3 +29,8 @@
         compatible = "zmk,battery-nrf-vddh";
     };
 };
+
+/* Central: receive pointer events from the right half. */
+&glidepoint_listener {
+    status = "okay";
+};

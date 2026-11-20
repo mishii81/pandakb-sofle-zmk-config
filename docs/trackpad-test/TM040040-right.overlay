@@ -1,0 +1,20 @@
+/* Proposed peripheral-side fragment. NOT included in active build.
+ * The shared TM040040-split.dtsi must be included by BOTH halves.
+ * Existing SSD1306 @0x3c stays on &pro_micro_i2c.
+ * The pad for P0.29 was continuity-tested by the user.
+ */
+&right_encoder {
+    status = "disabled";
+};
+&pro_micro_i2c {
+    glidepoint: glidepoint@2a {
+        compatible = "cirque,pinnacle";
+        reg = <0x2a>;
+        status = "okay";
+        dr-gpios = <&gpio0 29 GPIO_ACTIVE_HIGH>;
+        sensitivity = "2x";
+    };
+};
+&glidepoint_split {
+    device = <&glidepoint>;
+};
