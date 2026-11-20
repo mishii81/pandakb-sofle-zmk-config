@@ -72,3 +72,18 @@ Remaining blockers before code enablement:
 4. Create isolated test build targets and verify GitHub Actions success.
 
 No trackpad functionality is enabled by this documentation update.
+
+
+## Corrected measured encoder pad mapping (user continuity test, 2026-11-20)
+
+The earlier visual inference D4/P0.22 and D5/P0.24 was **incorrect** and must not be used.
+
+Measured pad connections (right PCB, user-confirmed):
+- Pad immediately above GND: nice!nano D17 (A2), nRF P0.31.
+- Pad immediately below GND: nice!nano D16 (A1), nRF P0.29.
+- Lower of two pads in right column: nice!nano D10, nRF P0.09.
+- Ground pad: GND.
+
+IMPORTANT: Existing `Sofle.dtsi` uses `&pro_micro 10` as a right-hand matrix column, so D10/P0.09 is **not** a safe DR candidate unless verified otherwise. The pin identifiers `&pro_micro 20/21` in the encoder definition are not the physical D20/D21 labels; check the board's `pro_micro` mapping before changing.
+
+Next: inspect actual nRF board/pro_micro mappings and check whether D16/P0.29 or D17/P0.31 is occupied by the matrix or another device. Do not enable DR in firmware until verified.
