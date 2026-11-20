@@ -70,3 +70,18 @@ Important remaining checks:
 - Confirm right OLED plus trackpad simultaneous operation and power use.
 - Correct the separately staged `docs/TM040040-right-overlay.template.dts` legacy template before using it; it still shows newer driver syntax and is not a build input.
 - Build left/right firmware; no GitHub Actions run was triggered by docs-only commits.
+
+
+## Kconfig source inspection (2026-11-20)
+
+Fetched directly from `petejohanson/cirque-input-module`:
+- `drivers/Kconfig` -> `rsource "input/Kconfig"`
+- `drivers/input/Kconfig` -> `menuconfig INPUT_PINNACLE`, default y, requires `GPIO`, `SPI || I2C`, `INPUT`, and `DT_HAS_CIRQUE_PINNACLE_ENABLED`.
+- Optional `CONFIG_ZMK_INPUT_PINNACLE_IDLE_SLEEPER` appears only within `if ZMK_MOUSE`; its availability in the selected ZMK v0.3 version is not established.
+- `zephyr/module.yml` declares `build.cmake`, `build.kconfig`, `settings.dts_root`.
+
+A suitable test configuration is likely `CONFIG_INPUT=y`, `CONFIG_I2C=y`, `CONFIG_GPIO=y`, `CONFIG_INPUT_PINNACLE=y` for the peripheral half, but these have not been compiled. Check symbols against the selected ZMK commit before adding to `config/Sofle.conf`.
+
+Updated `docs/TM040040-right-overlay.template.dts` to use the same older driver binding as `docs/trackpad-test/TM040040-right.overlay`, eliminating conflicting `pinnacle2`/data-ready naming.
+
+**No driver has been pinned to a commit, no active firmware files or build.yaml changed, and no Actions build has run.**
