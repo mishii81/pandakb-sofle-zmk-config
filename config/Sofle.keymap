@@ -28,8 +28,8 @@
     glidepoint_mouse_layer: glidepoint_mouse_layer {
         compatible = "zmk,input-processor-temp-layer";
         #input-processor-cells = <2>;
-        // Third, fourth and fifth left thumb positions.
-        excluded-positions = <52 53 54>;
+        // Three right thumb positions nearest the center.
+        excluded-positions = <55 56 57>;
     };
 
     keymap {
@@ -87,7 +87,7 @@
 &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
 &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
 &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
-&trans &trans &mkp LCLK &mkp MCLK &mkp RCLK &trans &trans &trans &trans &trans
+&trans &trans &trans &trans &trans &mkp LCLK &mkp MCLK &mkp RCLK &trans &trans
             >;
         };
     };
