@@ -23,7 +23,7 @@ jobs:
           west init -l config
           west update --fetch-opt=--filter=tree:0
           west zephyr-export
-      - name: Instrument Cirque read failures
+      - name: Add Cirque edge scroll and read diagnostics
         working-directory: /tmp/cirque-zmk
         run: |
           python3 - <<'PY'
@@ -46,6 +46,14 @@ jobs:
           end = text.index("static void pinnacle_send_abs(", start)
           send = replace_once(text[start:end],
               "    pinnacle_clear_status(dev);\n    set_int(dev, true);\n\n", "")
+          send = replace_once(send,
+              "int8_t dx, int8_t dy)", "int8_t dx, int8_t dy, int8_t wheel)")
+          send = replace_once(send,
+              "        input_report_rel(dev, INPUT_REL_Y, dy, true, K_FOREVER);",
+              "        input_report_rel(dev, INPUT_REL_Y, dy, wheel == 0, K_FOREVER);\n"
+              "        if (wheel != 0) {\n"
+              "            input_report_rel(dev, INPUT_REL_WHEEL, wheel, true, K_FOREVER);\n"
+              "        }")
           text = text[:start] + send + text[end:]
 
           start = text.index("static void pinnacle_report_data_rel(")
@@ -69,9 +77,20 @@ jobs:
               "    if (ret < 0) {\n        return ret;\n    }\n\n"
               '    LOG_HEXDUMP_DBG(packet, 3, "Pinnacle Packets");')
           report = replace_once(report,
+              "    uint8_t packet[3];", "    uint8_t packet[4];")
+          report = replace_once(report,
+              "PINNACLE_2_2_PACKET0, packet, 3", "PINNACLE_2_2_PACKET0, packet, sizeof(packet)")
+          report = replace_once(report,
               "    pinnacle_send_rel(dev, (int8_t) dx, (int8_t) dy);",
-              "    pinnacle_send_rel(dev, (int8_t) dx, (int8_t) dy);\n    return 0;")
+              "    pinnacle_send_rel(dev, dx, dy, (int8_t)packet[3]);\n    return 0;")
           text = text[:start] + report + text[end:]
+          text = replace_once(text,
+              "pinnacle_send_rel(dev, (int8_t) dx, (int8_t) dy);",
+              "pinnacle_send_rel(dev, (int8_t) dx, (int8_t) dy, 0);")
+          # IntelliMouse enables byte four; leave the scroll-disable flag clear.
+          text = replace_once(text,
+              "PINNACLE_FEED_CFG2_EN_IM | PINNACLE_FEED_CFG2_EN_BTN_SCRL",
+              "PINNACLE_FEED_CFG2_EN_IM")
 
           text = replace_once(text,
               "    struct pinnacle_data *data = CONTAINER_OF(work, struct pinnacle_data, work);",
@@ -113,9 +132,9 @@ jobs:
             -DZMK_CONFIG="$PWD/config" \
             -DZMK_EXTRA_MODULES="$GITHUB_WORKSPACE" \
             -DSHIELD="Sofle_R nice_oled" -DCONFIG_INPUT_LOG_LEVEL_INF=y
-          cp build-right/zephyr/zmk.uf2 "$GITHUB_WORKSPACE/Sofle_R-cirque-dr-diagnostics.uf2"
+          cp build-right/zephyr/zmk.uf2 "$GITHUB_WORKSPACE/Sofle_R-cirque-edge-scroll.uf2"
       - uses: actions/upload-artifact@v4
         with:
-          name: Sofle_R-cirque-dr-diagnostics
-          path: Sofle_R-cirque-dr-diagnostics.uf2
+          name: Sofle_R-cirque-edge-scroll
+          path: Sofle_R-cirque-edge-scroll.uf2
           if-no-files-found: error
