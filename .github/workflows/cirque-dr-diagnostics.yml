@@ -13,12 +13,18 @@ jobs:
       image: zmkfirmware/zmk-build-arm:stable
     steps:
       - uses: actions/checkout@v4
+      - name: Prepare isolated west workspace
+        run: |
+          mkdir -p /tmp/cirque-zmk/config
+          cp -R config/. /tmp/cirque-zmk/config/
       - name: Fetch pinned ZMK and Cirque sources
+        working-directory: /tmp/cirque-zmk
         run: |
           west init -l config
           west update --fetch-opt=--filter=tree:0
           west zephyr-export
       - name: Instrument Cirque read failures
+        working-directory: /tmp/cirque-zmk
         run: |
           python3 - <<'PY'
           from pathlib import Path
@@ -101,12 +107,13 @@ jobs:
           header.write_text(text)
           PY
       - name: Build right UF2 with USB logging
+        working-directory: /tmp/cirque-zmk
         run: |
           west build -s zmk/app -d build-right -b nice_nano_v2 -S zmk-usb-logging -- \
-            -DZMK_CONFIG="$GITHUB_WORKSPACE/config" \
+            -DZMK_CONFIG="$PWD/config" \
             -DZMK_EXTRA_MODULES="$GITHUB_WORKSPACE" \
             -DSHIELD="Sofle_R nice_oled" -DCONFIG_INPUT_LOG_LEVEL_INF=y
-          cp build-right/zephyr/zmk.uf2 Sofle_R-cirque-dr-diagnostics.uf2
+          cp build-right/zephyr/zmk.uf2 "$GITHUB_WORKSPACE/Sofle_R-cirque-dr-diagnostics.uf2"
       - uses: actions/upload-artifact@v4
         with:
           name: Sofle_R-cirque-dr-diagnostics
