@@ -8,10 +8,12 @@
 #include <dt-bindings/zmk/keys.h>
 #include <dt-bindings/zmk/bt.h>
 #include <dt-bindings/zmk/pointing.h>
+#include <input/processors.dtsi>
 
 #define BASE 0
 #define SYMBOLS 1
 #define MOUSE 6
+#define POINTER_PRECISION 7
 
 #define TRANSPARENT_LAYER \
     &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans \
@@ -21,15 +23,20 @@
     &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
 
 &glidepoint_listener {
-    input-processors = <&glidepoint_mouse_layer MOUSE 800>;
+    input-processors = <&glidepoint_mouse_layer MOUSE 800>, <&zip_xy_scaler 3 2>;
+
+    precision_mode {
+        layers = <POINTER_PRECISION>;
+        input-processors = <&glidepoint_mouse_layer MOUSE 800>;
+    };
 };
 
 / {
     glidepoint_mouse_layer: glidepoint_mouse_layer {
         compatible = "zmk,input-processor-temp-layer";
         #input-processor-cells = <2>;
-        // Three right thumb positions nearest the center.
-        excluded-positions = <55 56 57>;
+        // Right thumb mouse buttons and speed toggle.
+        excluded-positions = <55 56 57 58>;
     };
 
     keymap {
@@ -87,8 +94,13 @@
 &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
 &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
 &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
-&trans &trans &trans &trans &trans &mkp LCLK &mkp MCLK &mkp RCLK &trans &trans
+&trans &trans &trans &trans &trans &mkp LCLK &mkp MCLK &mkp RCLK &tog POINTER_PRECISION &trans
             >;
+        };
+
+        pointer_precision_layer {
+            display-name = "Pointer Precision";
+            bindings = <TRANSPARENT_LAYER>;
         };
     };
 };
