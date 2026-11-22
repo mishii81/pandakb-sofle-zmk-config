@@ -13,6 +13,13 @@
 #define SYMBOLS 1
 #define MOUSE 6
 
+#define TRANSPARENT_LAYER \
+    &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans \
+    &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans \
+    &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans \
+    &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans \
+    &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+
 &glidepoint_listener {
     input-processors = <&glidepoint_mouse_layer MOUSE 800>;
 };
@@ -54,18 +61,22 @@
 
         extra1 {
             status = "okay";
+            bindings = <TRANSPARENT_LAYER>;
         };
 
         extra2 {
             status = "okay";
+            bindings = <TRANSPARENT_LAYER>;
         };
 
         extra3 {
             status = "okay";
+            bindings = <TRANSPARENT_LAYER>;
         };
 
         extra4 {
             status = "okay";
+            bindings = <TRANSPARENT_LAYER>;
         };
 
         // Keep the six existing Studio layer IDs and append the mouse layer.
