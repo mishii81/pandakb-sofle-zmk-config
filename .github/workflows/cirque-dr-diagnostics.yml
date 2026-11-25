@@ -120,6 +120,22 @@ jobs:
           text = replace_once(text, "k_work_init(&data->work, pinnacle_work_cb);",
                               "k_work_init_delayable(&data->work, pinnacle_work_cb);\n"
                               '    LOG_INF("Cirque DR diagnostics active");')
+          # Keep I2C and input reporting off the system queue used by matrix scanning.
+          text = replace_once(text,
+              "LOG_MODULE_REGISTER(pinnacle, CONFIG_INPUT_LOG_LEVEL);",
+              "LOG_MODULE_REGISTER(pinnacle, CONFIG_INPUT_LOG_LEVEL);\n\n"
+              "BUILD_ASSERT(DT_NUM_INST_STATUS_OKAY(DT_DRV_COMPAT) == 1);\n"
+              "static struct k_work_q cirque_work_queue;\n"
+              "K_THREAD_STACK_DEFINE(cirque_work_stack, 1536);")
+          text = text.replace("k_work_reschedule(&data->work,",
+                              "k_work_reschedule_for_queue(&cirque_work_queue, &data->work,")
+          text = replace_once(text,
+              "    k_work_init_delayable(&data->work, pinnacle_work_cb);",
+              "    k_work_queue_start(&cirque_work_queue, cirque_work_stack,\n"
+              "                       K_THREAD_STACK_SIZEOF(cirque_work_stack), K_PRIO_PREEMPT(7), NULL);\n"
+              "    k_work_init_delayable(&data->work, pinnacle_work_cb);")
+          text = replace_once(text,
+              "Cirque DR diagnostics active", "Cirque dedicated worker active")
           source.write_text(text)
           text = replace_once(header.read_text(), "struct k_work work;",
                               "struct k_work_delayable work;\n    int last_read_error;")
@@ -132,9 +148,9 @@ jobs:
             -DZMK_CONFIG="$PWD/config" \
             -DZMK_EXTRA_MODULES="$GITHUB_WORKSPACE" \
             -DSHIELD="Sofle_R nice_oled" -DCONFIG_INPUT_LOG_LEVEL_INF=y
-          cp build-right/zephyr/zmk.uf2 "$GITHUB_WORKSPACE/Sofle_R-cirque-edge-scroll.uf2"
+          cp build-right/zephyr/zmk.uf2 "$GITHUB_WORKSPACE/Sofle_R-cirque-isolated-worker.uf2"
       - uses: actions/upload-artifact@v4
         with:
-          name: Sofle_R-cirque-edge-scroll
-          path: Sofle_R-cirque-edge-scroll.uf2
+          name: Sofle_R-cirque-isolated-worker
+          path: Sofle_R-cirque-isolated-worker.uf2
           if-no-files-found: error
