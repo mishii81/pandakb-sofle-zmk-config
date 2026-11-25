@@ -63,7 +63,8 @@ static inline struct cirque_gesture_report cirque_gesture_sample(
 
     // Scale Pinnacle's specified active coordinate range to a square centered at zero.
     const int32_t x = (cirque_clamp(raw_x, 128, 1920) - 1024) * 1024 / 896;
-    const int32_t y = (cirque_clamp(raw_y, 64, 1472) - 768) * 1024 / 704;
+    // Absolute packets on this orientation increase upward; normalize to screen coordinates.
+    const int32_t y = (768 - cirque_clamp(raw_y, 64, 1472)) * 1024 / 704;
     const int32_t radius = cirque_radius_squared(x, y);
 
     if (state->mode == CIRQUE_IDLE) {
