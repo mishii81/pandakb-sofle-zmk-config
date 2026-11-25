@@ -1,7 +1,7 @@
-name: Build right Cirque diagnostics
+name: Build right RGB data diagnostic
 on:
   push:
-    branches: [test/cirque-dr-diagnostics]
+    branches: [test/right-rgb-data-pulldown]
 
 permissions:
   contents: read
@@ -153,16 +153,37 @@ jobs:
                               "    int32_t rotate_remainder_x;\n    int32_t rotate_remainder_y;")
           header.write_text(text)
           PY
+      - name: Configure right RGB data pull-down
+        run: |
+          cat >> boards/shields/Sofle/Sofle_R.overlay <<'DTS'
+
+          &gpio0 {
+              rgb_data_pulldown {
+                  gpio-hog;
+                  gpios = <6 GPIO_PULL_DOWN>;
+                  input;
+              };
+          };
+          DTS
       - name: Build right UF2 with USB logging
         working-directory: /tmp/cirque-zmk
         run: |
           west build -s zmk/app -d build-right -b nice_nano_v2 -S zmk-usb-logging -- \
             -DZMK_CONFIG="$PWD/config" \
             -DZMK_EXTRA_MODULES="$GITHUB_WORKSPACE" \
-            -DSHIELD="Sofle_R nice_oled" -DCONFIG_INPUT_LOG_LEVEL_INF=y
-          cp build-right/zephyr/zmk.uf2 "$GITHUB_WORKSPACE/Sofle_R-cirque-rotation-45-ccw.uf2"
+            -DSHIELD="Sofle_R nice_oled" -DCONFIG_INPUT_LOG_LEVEL_INF=y -DCONFIG_GPIO_HOGS=y
+          grep -q '^CONFIG_GPIO_HOGS=y
+          cp build-right/zephyr/zmk.uf2 "$GITHUB_WORKSPACE/Sofle_R-cirque-rgb-data-pulldown.uf2"
       - uses: actions/upload-artifact@v4
         with:
-          name: Sofle_R-cirque-rotation-45-ccw
-          path: Sofle_R-cirque-rotation-45-ccw.uf2
+          name: Sofle_R-cirque-rgb-data-pulldown
+          path: Sofle_R-cirque-rgb-data-pulldown.uf2
+          if-no-files-found: error
+ build-right/zephyr/.config
+          grep -q 'rgb_data_pulldown' build-right/zephyr/zephyr.dts
+          cp build-right/zephyr/zmk.uf2 "$GITHUB_WORKSPACE/Sofle_R-cirque-rgb-data-pulldown.uf2"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Sofle_R-cirque-rgb-data-pulldown
+          path: Sofle_R-cirque-rgb-data-pulldown.uf2
           if-no-files-found: error
