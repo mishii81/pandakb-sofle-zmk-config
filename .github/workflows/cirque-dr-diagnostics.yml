@@ -172,14 +172,7 @@ jobs:
             -DZMK_CONFIG="$PWD/config" \
             -DZMK_EXTRA_MODULES="$GITHUB_WORKSPACE" \
             -DSHIELD="Sofle_R nice_oled" -DCONFIG_INPUT_LOG_LEVEL_INF=y -DCONFIG_GPIO_HOGS=y
-          grep -q '^CONFIG_GPIO_HOGS=y
-          cp build-right/zephyr/zmk.uf2 "$GITHUB_WORKSPACE/Sofle_R-cirque-rgb-data-pulldown.uf2"
-      - uses: actions/upload-artifact@v4
-        with:
-          name: Sofle_R-cirque-rgb-data-pulldown
-          path: Sofle_R-cirque-rgb-data-pulldown.uf2
-          if-no-files-found: error
- build-right/zephyr/.config
+          grep -qx 'CONFIG_GPIO_HOGS=y' build-right/zephyr/.config
           grep -q 'rgb_data_pulldown' build-right/zephyr/zephyr.dts
           cp build-right/zephyr/zmk.uf2 "$GITHUB_WORKSPACE/Sofle_R-cirque-rgb-data-pulldown.uf2"
       - uses: actions/upload-artifact@v4
