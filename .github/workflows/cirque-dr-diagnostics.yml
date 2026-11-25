@@ -57,10 +57,10 @@ jobs:
           send = replace_once(send,
               "        input_report_rel(dev, INPUT_REL_X, dx, false, K_FOREVER);\n"
               "        input_report_rel(dev, INPUT_REL_Y, dy, wheel == 0, K_FOREVER);",
-              "        /* Apply the clockwise mount angle in screen coordinates (Y down). */\n"
+              "        /* Apply a counterclockwise XY correction in screen coordinates (Y down). */\n"
               "        /* 181/256 approximates sqrt(1/2). Carry sub-count motion between packets. */\n"
-              "        int32_t x = 181 * ((int32_t)dx - dy) + data->rotate_remainder_x;\n"
-              "        int32_t y = 181 * ((int32_t)dx + dy) + data->rotate_remainder_y;\n"
+              "        int32_t x = 181 * ((int32_t)dx + dy) + data->rotate_remainder_x;\n"
+              "        int32_t y = 181 * ((int32_t)dy - dx) + data->rotate_remainder_y;\n"
               "        data->rotate_remainder_x = x % 256;\n"
               "        data->rotate_remainder_y = y % 256;\n"
               "        input_report_rel(dev, INPUT_REL_X, x / 256, false, K_FOREVER);\n"
@@ -146,7 +146,7 @@ jobs:
               "                       K_THREAD_STACK_SIZEOF(cirque_work_stack), K_PRIO_PREEMPT(7), NULL);\n"
               "    k_work_init_delayable(&data->work, pinnacle_work_cb);")
           text = replace_once(text,
-              "Cirque DR diagnostics active", "Cirque dedicated worker active (45-degree XY correction)")
+              "Cirque DR diagnostics active", "Cirque dedicated worker active (counterclockwise 45-degree XY correction)")
           source.write_text(text)
           text = replace_once(header.read_text(), "struct k_work work;",
                               "struct k_work_delayable work;\n    int last_read_error;\n"
@@ -160,9 +160,9 @@ jobs:
             -DZMK_CONFIG="$PWD/config" \
             -DZMK_EXTRA_MODULES="$GITHUB_WORKSPACE" \
             -DSHIELD="Sofle_R nice_oled" -DCONFIG_INPUT_LOG_LEVEL_INF=y
-          cp build-right/zephyr/zmk.uf2 "$GITHUB_WORKSPACE/Sofle_R-cirque-rotation-45.uf2"
+          cp build-right/zephyr/zmk.uf2 "$GITHUB_WORKSPACE/Sofle_R-cirque-rotation-45-ccw.uf2"
       - uses: actions/upload-artifact@v4
         with:
-          name: Sofle_R-cirque-rotation-45
-          path: Sofle_R-cirque-rotation-45.uf2
+          name: Sofle_R-cirque-rotation-45-ccw
+          path: Sofle_R-cirque-rotation-45-ccw.uf2
           if-no-files-found: error
