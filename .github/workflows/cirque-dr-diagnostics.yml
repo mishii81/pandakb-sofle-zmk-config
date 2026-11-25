@@ -1,7 +1,7 @@
-name: Build right Cirque with original axes
+name: Build right Cirque circular scroll
 on:
   push:
-    branches: [test/right-touchpad-original-angle]
+    branches: [test/right-cirque-circular-scroll]
 
 permissions:
   contents: read
@@ -23,10 +23,11 @@ jobs:
           west init -l config
           west update --fetch-opt=--filter=tree:0
           west zephyr-export
-      - name: Add Cirque edge scroll and dedicated worker
+      - name: Add Cirque circular scroll and preserve dedicated worker
         working-directory: /tmp/cirque-zmk
         run: |
           python3 - <<'PY'
+          import os
           from pathlib import Path
           import subprocess
 
@@ -42,61 +43,86 @@ jobs:
               return text.replace(before, after, 1)
 
           text = source.read_text()
+          gestures = Path(os.environ["GITHUB_WORKSPACE"]) / "firmware/cirque_gestures.h"
+          source.with_name(gestures.name).write_text(gestures.read_text())
           start = text.index("static void pinnacle_send_rel(")
-          end = text.index("static void pinnacle_send_abs(", start)
-          send = replace_once(text[start:end],
-              "    pinnacle_clear_status(dev);\n    set_int(dev, true);\n\n", "")
-          send = replace_once(send,
-              "int8_t dx, int8_t dy)", "int8_t dx, int8_t dy, int8_t wheel)")
-          send = replace_once(send,
-              "        input_report_rel(dev, INPUT_REL_Y, dy, true, K_FOREVER);",
-              "        input_report_rel(dev, INPUT_REL_Y, dy, wheel == 0, K_FOREVER);\n"
-              "        if (wheel != 0) {\n"
-              "            input_report_rel(dev, INPUT_REL_WHEEL, wheel, true, K_FOREVER);\n"
-              "        }")
-          text = text[:start] + send + text[end:]
-
-          start = text.index("static void pinnacle_report_data_rel(")
           end = text.index("static void pinnacle_work_cb(", start)
-          report = text[start:end].replace(
-              "static void pinnacle_report_data_rel", "static int pinnacle_report_data_rel", 1
-          )
-          report = replace_once(report,
-              '        LOG_ERR("read status: %d", ret);\n        return;',
-              "        return ret;")
-          report = replace_once(report,
-              "    if (packet[0] == 0xFF || !(packet[0] & PINNACLE_STATUS1_SW_DR)) {\n        return;\n    }",
-              "    if (packet[0] == 0xFF) {\n        return -EBADMSG;\n    }\n"
-              "    if (!(packet[0] & PINNACLE_STATUS1_SW_DR)) {\n        return -EAGAIN;\n    }")
-          report = replace_once(report,
-              '        LOG_ERR("read packet: %d", ret);\n        return;',
-              "        return ret;")
-          report = replace_once(report,
-              '    LOG_HEXDUMP_DBG(packet, 3, "Pinnacle Packets");',
-              "    ret = pinnacle_clear_status(dev);\n"
-              "    if (ret < 0) {\n        return ret;\n    }\n\n"
-              '    LOG_HEXDUMP_DBG(packet, 3, "Pinnacle Packets");')
-          report = replace_once(report,
-              "    uint8_t packet[3];", "    uint8_t packet[4];")
-          report = replace_once(report,
-              "PINNACLE_2_2_PACKET0, packet, 3", "PINNACLE_2_2_PACKET0, packet, sizeof(packet)")
-          report = replace_once(report,
-              "    pinnacle_send_rel(dev, (int8_t) dx, (int8_t) dy);",
-              "    pinnacle_send_rel(dev, dx, dy, (int8_t)packet[3]);\n    return 0;")
-          text = text[:start] + report + text[end:]
-          text = replace_once(text,
-              "pinnacle_send_rel(dev, (int8_t) dx, (int8_t) dy);",
-              "pinnacle_send_rel(dev, (int8_t) dx, (int8_t) dy, 0);")
-          # IntelliMouse enables byte four; leave the scroll-disable flag clear.
-          text = replace_once(text,
-              "PINNACLE_FEED_CFG2_EN_IM | PINNACLE_FEED_CFG2_EN_BTN_SCRL",
-              "PINNACLE_FEED_CFG2_EN_IM")
+          text = text[:start] + r"""static int pinnacle_report_gestures(const struct device *dev) {
+              uint8_t status;
+              int ret = pinnacle_seq_read(dev, PINNACLE_STATUS1, &status, 1);
+              if (ret < 0) {
+                  return ret;
+              }
+              if (status == 0xFF) {
+                  return -EBADMSG;
+              }
+              if (!(status & PINNACLE_STATUS1_SW_DR)) {
+                  return -EAGAIN;
+              }
+
+              uint8_t packet[6];
+              ret = pinnacle_seq_read(dev, PINNACLE_2_2_PACKET0, packet, sizeof(packet));
+              if (ret < 0) {
+                  return ret;
+              }
+              ret = pinnacle_clear_status(dev);
+              if (ret < 0) {
+                  return ret;
+              }
+
+              const struct pinnacle_config *config = dev->config;
+              struct pinnacle_data *data = dev->data;
+              const bool touching = (packet[5] & 0x3f) != 0;
+              const uint16_t x = ((packet[4] & 0x0f) << 8) | packet[2];
+              const uint16_t y = ((packet[4] & 0xf0) << 4) | packet[3];
+              const struct cirque_gesture_report report =
+                  cirque_gesture_sample(&data->gesture, touching, x, y, k_uptime_get_32());
+
+              const uint8_t changed_buttons = (packet[0] ^ data->btn_cache) & 0x07;
+              for (int i = 0; i < 3; ++i) {
+                  if (changed_buttons & BIT(i)) {
+                      input_report_key(dev, INPUT_BTN_0 + i, (packet[0] & BIT(i)) != 0, true, K_FOREVER);
+                  }
+              }
+              data->btn_cache = packet[0];
+
+              if (report.dx) {
+                  input_report_rel(dev, INPUT_REL_X, report.dx, report.dy == 0, K_FOREVER);
+              }
+              if (report.dy) {
+                  input_report_rel(dev, INPUT_REL_Y, report.dy, true, K_FOREVER);
+              }
+              if (report.wheel) {
+                  input_report_rel(dev, INPUT_REL_WHEEL, report.wheel, true, K_FOREVER);
+              }
+              if (report.tap && !config->no_taps && !(packet[0] & PINNACLE_PACKET0_BTN_PRIM)) {
+                  input_report_key(dev, INPUT_BTN_0, 1, true, K_FOREVER);
+                  input_report_key(dev, INPUT_BTN_0, 0, true, K_FOREVER);
+              }
+
+              return 0;
+          }
+
+          """ + text[end:]
+
+          start = text.index("    if (config->absolute_mode) {")
+          end = text.index("\n}", start)
+          text = text[:start] + "        pinnacle_report_data_rel(dev);" + text[end:]
+
+          start = text.index("    uint8_t feed_cfg2 =")
+          end = text.index("    if (config->x_invert)", start)
+          text = text[:start] + """    ret = pinnacle_write(dev, PINNACLE_FEED_CFG2, 0);
+              if (ret < 0) {
+                  return ret;
+              }
+              uint8_t feed_cfg1 = PINNACLE_FEED_CFG1_EN_FEED | PINNACLE_FEED_CFG1_ABS_MODE;
+          """ + text[end:]
 
           text = replace_once(text,
               "    struct pinnacle_data *data = CONTAINER_OF(work, struct pinnacle_data, work);",
               "    struct pinnacle_data *data = CONTAINER_OF(\n"
               "        k_work_delayable_from_work(work), struct pinnacle_data, work);")
-          text = replace_once(text, "        pinnacle_report_data_rel(dev);", """        int ret = pinnacle_report_data_rel(dev);
+          text = replace_once(text, "        pinnacle_report_data_rel(dev);", """        int ret = pinnacle_report_gestures(dev);
                   if (ret < 0) {
                       if (data->last_read_error != ret) {
                           LOG_WRN("Cirque read incomplete: %d (-11 no report, -74 invalid status)", ret);
@@ -135,10 +161,11 @@ jobs:
               "                       K_THREAD_STACK_SIZEOF(cirque_work_stack), K_PRIO_PREEMPT(7), NULL);\n"
               "    k_work_init_delayable(&data->work, pinnacle_work_cb);")
           text = replace_once(text,
-              "Cirque DR diagnostics active", "Cirque dedicated worker active")
+              "Cirque DR diagnostics active", "Cirque circular scroll and tap active")
           source.write_text(text)
-          text = replace_once(header.read_text(), "struct k_work work;",
-                              "struct k_work_delayable work;\n    int last_read_error;")
+          text = replace_once(header.read_text(), "#pragma once", '#pragma once\n\n#include "cirque_gestures.h"')
+          text = replace_once(text, "struct k_work work;",
+                              "struct k_work_delayable work;\n    int last_read_error;\n    struct cirque_gesture_state gesture;")
           header.write_text(text)
           PY
       - name: Configure right RGB data pull-down
@@ -162,9 +189,9 @@ jobs:
             -DSHIELD="Sofle_R nice_oled" -DCONFIG_INPUT_LOG_LEVEL_INF=y -DCONFIG_GPIO_HOGS=y
           grep -qx 'CONFIG_GPIO_HOGS=y' build-right/zephyr/.config
           grep -q 'rgb_data_pulldown' build-right/zephyr/zephyr.dts
-          cp build-right/zephyr/zmk.uf2 "$GITHUB_WORKSPACE/Sofle_R-cirque-original-angle.uf2"
+          cp build-right/zephyr/zmk.uf2 "$GITHUB_WORKSPACE/Sofle_R-cirque-circular-scroll.uf2"
       - uses: actions/upload-artifact@v4
         with:
-          name: Sofle_R-cirque-original-angle
-          path: Sofle_R-cirque-original-angle.uf2
+          name: Sofle_R-cirque-circular-scroll
+          path: Sofle_R-cirque-circular-scroll.uf2
           if-no-files-found: error
