@@ -23,7 +23,7 @@ jobs:
           west init -l config
           west update --fetch-opt=--filter=tree:0
           west zephyr-export
-      - name: Add Cirque edge scroll and read diagnostics
+      - name: Add Cirque edge scroll and 45-degree axis correction
         working-directory: /tmp/cirque-zmk
         run: |
           python3 - <<'PY'
@@ -54,6 +54,17 @@ jobs:
               "        if (wheel != 0) {\n"
               "            input_report_rel(dev, INPUT_REL_WHEEL, wheel, true, K_FOREVER);\n"
               "        }")
+          send = replace_once(send,
+              "        input_report_rel(dev, INPUT_REL_X, dx, false, K_FOREVER);\n"
+              "        input_report_rel(dev, INPUT_REL_Y, dy, wheel == 0, K_FOREVER);",
+              "        /* Apply the clockwise mount angle in screen coordinates (Y down). */\n"
+              "        /* 181/256 approximates sqrt(1/2). Carry sub-count motion between packets. */\n"
+              "        int32_t x = 181 * ((int32_t)dx - dy) + data->rotate_remainder_x;\n"
+              "        int32_t y = 181 * ((int32_t)dx + dy) + data->rotate_remainder_y;\n"
+              "        data->rotate_remainder_x = x % 256;\n"
+              "        data->rotate_remainder_y = y % 256;\n"
+              "        input_report_rel(dev, INPUT_REL_X, x / 256, false, K_FOREVER);\n"
+              "        input_report_rel(dev, INPUT_REL_Y, y / 256, wheel == 0, K_FOREVER);")
           text = text[:start] + send + text[end:]
 
           start = text.index("static void pinnacle_report_data_rel(")
@@ -135,10 +146,11 @@ jobs:
               "                       K_THREAD_STACK_SIZEOF(cirque_work_stack), K_PRIO_PREEMPT(7), NULL);\n"
               "    k_work_init_delayable(&data->work, pinnacle_work_cb);")
           text = replace_once(text,
-              "Cirque DR diagnostics active", "Cirque dedicated worker active")
+              "Cirque DR diagnostics active", "Cirque dedicated worker active (45-degree XY correction)")
           source.write_text(text)
           text = replace_once(header.read_text(), "struct k_work work;",
-                              "struct k_work_delayable work;\n    int last_read_error;")
+                              "struct k_work_delayable work;\n    int last_read_error;\n"
+                              "    int32_t rotate_remainder_x;\n    int32_t rotate_remainder_y;")
           header.write_text(text)
           PY
       - name: Build right UF2 with USB logging
@@ -148,9 +160,9 @@ jobs:
             -DZMK_CONFIG="$PWD/config" \
             -DZMK_EXTRA_MODULES="$GITHUB_WORKSPACE" \
             -DSHIELD="Sofle_R nice_oled" -DCONFIG_INPUT_LOG_LEVEL_INF=y
-          cp build-right/zephyr/zmk.uf2 "$GITHUB_WORKSPACE/Sofle_R-cirque-isolated-worker.uf2"
+          cp build-right/zephyr/zmk.uf2 "$GITHUB_WORKSPACE/Sofle_R-cirque-rotation-45.uf2"
       - uses: actions/upload-artifact@v4
         with:
-          name: Sofle_R-cirque-isolated-worker
-          path: Sofle_R-cirque-isolated-worker.uf2
+          name: Sofle_R-cirque-rotation-45
+          path: Sofle_R-cirque-rotation-45.uf2
           if-no-files-found: error
