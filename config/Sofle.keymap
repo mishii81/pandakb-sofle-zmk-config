@@ -23,7 +23,7 @@
     &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
 
 &glidepoint_listener {
-    input-processors = <&glidepoint_mouse_layer MOUSE 800>, <&zip_xy_scaler 3 2>;
+    input-processors = <&glidepoint_mouse_layer MOUSE 800>, <&zip_xy_scaler 3 1>;
 
     precision_mode {
         layers = <POINTER_PRECISION>;
